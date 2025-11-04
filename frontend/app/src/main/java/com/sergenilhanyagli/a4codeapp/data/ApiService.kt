@@ -60,5 +60,13 @@ interface ApiService {
 
     @POST("categories")
     suspend fun createCategory(@Body body: HashMap<String, Any>): Response<Map<String, Any>>
+    @GET("sales/daily")
+    suspend fun getSalesDaily(): Response<List<Map<String, Any>>>
+
+    @GET("sales/monthly")
+    suspend fun getSalesMonthly(): Response<List<Map<String, Any>>>
+
+    @GET("/sales/weekly")
+    suspend fun getSalesWeekly(): List<Map<String, Any>>
 
 }

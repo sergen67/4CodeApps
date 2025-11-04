@@ -144,6 +144,23 @@ app.get("/sales/monthly", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// 🔹 Haftalık Ciro
+app.get("/sales/weekly", async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT DATE_TRUNC('week', "createdAt") as week_start,
+             SUM("totalPrice") as total
+      FROM "Sale"
+      WHERE "createdAt" >= NOW() - INTERVAL '4 weeks'
+      GROUP BY week_start
+      ORDER BY week_start DESC;
+    `;
+    res.json(result);
+  } catch (err) {
+    console.error("Haftalık ciro hatası:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /* ------------------ ORDERS ------------------ */
 app.post("/orders", async (req, res) => {

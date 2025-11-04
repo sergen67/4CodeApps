@@ -6,7 +6,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.getValue
 
 object ApiClient {
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    private const val BASE_URL = "https://fourcodeapps.onrender.com/"
 
     val instance: ApiService by lazy {
         Retrofit.Builder()
