@@ -67,6 +67,6 @@ interface ApiService {
     suspend fun getSalesMonthly(): Response<List<Map<String, Any>>>
 
     @GET("/sales/weekly")
-    suspend fun getSalesWeekly(): List<Map<String, Any>>
+    suspend fun getSalesWeekly(): Response<List<Map<String, Any>>>
 
 }

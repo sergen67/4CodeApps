@@ -120,9 +120,10 @@ app.get("/sales", async (req, res) => {
 app.get("/sales/daily", async (req, res) => {
   try {
     const result = await prisma.$queryRaw`
-      SELECT COALESCE(SUM("totalPrice"), 0) AS total
+      SELECT DATE("createdAt") as date, SUM("totalPrice") as total
       FROM "Sale"
-      WHERE DATE("createdAt") = CURRENT_DATE;
+      WHERE DATE("createdAt") = CURRENT_DATE
+      GROUP BY DATE("createdAt");
     `;
     res.json(result);
   } catch (err) {
@@ -130,13 +131,15 @@ app.get("/sales/daily", async (req, res) => {
   }
 });
 
-// 🔹 Haftalık ciro (son 7 gün toplamı)
+// 🔹 Haftalık ciro (son 7 gün)
 app.get("/sales/weekly", async (req, res) => {
   try {
     const result = await prisma.$queryRaw`
-      SELECT COALESCE(SUM("totalPrice"), 0) AS total
+      SELECT DATE("createdAt") as date, SUM("totalPrice") as total
       FROM "Sale"
-      WHERE "createdAt" >= NOW() - INTERVAL '7 days';
+      WHERE "createdAt" >= NOW() - INTERVAL '7 days'
+      GROUP BY DATE("createdAt")
+      ORDER BY date DESC;
     `;
     res.json(result);
   } catch (err) {
@@ -144,13 +147,15 @@ app.get("/sales/weekly", async (req, res) => {
   }
 });
 
-// 🔹 Aylık ciro (son 30 gün toplamı)
+// 🔹 Aylık ciro (son 30 gün)
 app.get("/sales/monthly", async (req, res) => {
   try {
     const result = await prisma.$queryRaw`
-      SELECT COALESCE(SUM("totalPrice"), 0) AS total
+      SELECT DATE_TRUNC('month', "createdAt") as month, SUM("totalPrice") as total
       FROM "Sale"
-      WHERE "createdAt" >= NOW() - INTERVAL '30 days';
+      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
+      GROUP BY month
+      ORDER BY month DESC;
     `;
     res.json(result);
   } catch (err) {
