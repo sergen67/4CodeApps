@@ -116,14 +116,13 @@ app.get("/sales", async (req, res) => {
 });
 
 /* ------------------ REVENUE ------------------ */
+// 🔹 Günlük ciro (bugünün toplamı)
 app.get("/sales/daily", async (req, res) => {
   try {
     const result = await prisma.$queryRaw`
-      SELECT DATE("createdAt") as date, SUM("totalPrice") as total
+      SELECT COALESCE(SUM("totalPrice"), 0) AS total
       FROM "Sale"
-      WHERE "createdAt" >= NOW() - INTERVAL '7 days'
-      GROUP BY DATE("createdAt")
-      ORDER BY date DESC;
+      WHERE DATE("createdAt") = CURRENT_DATE;
     `;
     res.json(result);
   } catch (err) {
@@ -131,36 +130,34 @@ app.get("/sales/daily", async (req, res) => {
   }
 });
 
-app.get("/sales/monthly", async (req, res) => {
-  try {
-    const result = await prisma.$queryRaw`
-      SELECT DATE_TRUNC('month', "createdAt") as month, SUM("totalPrice") as total
-      FROM "Sale"
-      GROUP BY month
-      ORDER BY month DESC;
-    `;
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// 🔹 Haftalık Ciro
+// 🔹 Haftalık ciro (son 7 gün toplamı)
 app.get("/sales/weekly", async (req, res) => {
   try {
     const result = await prisma.$queryRaw`
-      SELECT DATE_TRUNC('week', "createdAt") as week_start,
-             SUM("totalPrice") as total
+      SELECT COALESCE(SUM("totalPrice"), 0) AS total
       FROM "Sale"
-      WHERE "createdAt" >= NOW() - INTERVAL '4 weeks'
-      GROUP BY week_start
-      ORDER BY week_start DESC;
+      WHERE "createdAt" >= NOW() - INTERVAL '7 days';
     `;
     res.json(result);
   } catch (err) {
-    console.error("Haftalık ciro hatası:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// 🔹 Aylık ciro (son 30 gün toplamı)
+app.get("/sales/monthly", async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT COALESCE(SUM("totalPrice"), 0) AS total
+      FROM "Sale"
+      WHERE "createdAt" >= NOW() - INTERVAL '30 days';
+    `;
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 /* ------------------ ORDERS ------------------ */
 app.post("/orders", async (req, res) => {
