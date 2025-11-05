@@ -197,10 +197,11 @@ fun SaleItemCard(sale: Map<String, Any>) {
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text("Satıcı: $userName", fontWeight = FontWeight.Bold)
-            Text("Tutar: %.2f ₺".format(total))
-            Text("Ödeme: $payment")
-            Text("Tarih: $createdAt")
+            val userName = (sale["user"] as? Map<*, *>)?.get("name")?.toString() ?: "Bilinmiyor"
+            val total = (sale["totalPrice"] as? Number)?.toDouble() ?: 0.0
+            val payment = sale["paymentType"]?.toString() ?: "Bilinmiyor"
+            val createdAt = sale["createdAt"]?.toString()?.take(10) ?: "Tarih yok"
+
         }
     }
 }

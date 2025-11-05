@@ -81,39 +81,58 @@ app.delete("/products/:id", async (req, res) => {
   }
 });
 
-/* ------------------ SALES ------------------ */
+// Satış oluşturma (çalışan yapar)
 app.post("/sales", async (req, res) => {
   try {
     const { userId, totalPrice, paymentType } = req.body;
-    const numericTotal = parseFloat(totalPrice);
-    if (isNaN(numericTotal)) {
-      return res.status(400).json({ error: "Geçersiz totalPrice değeri" });
+
+    // Doğrulama
+    if (!userId || !totalPrice || !paymentType) {
+      return res.status(400).json({ error: "Eksik bilgi gönderildi." });
     }
+
     const sale = await prisma.sale.create({
       data: {
         userId: Number(userId),
-        totalPrice: numericTotal,
+        totalPrice: parseFloat(totalPrice),
         paymentType,
       },
     });
+
     res.json(sale);
   } catch (err) {
-    console.error(err);
+    console.error("Satış oluşturulamadı:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
+
+// Satışları listeleme (admin için)
 app.get("/sales", async (req, res) => {
   try {
     const sales = await prisma.sale.findMany({
-      include: { user: true },
-      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
+
     res.json(sales);
   } catch (err) {
+    console.error("Satış listesi alınamadı:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 /* ------------------ REVENUE ------------------ */
 // 🔹 Günlük ciro (bugünün toplamı)

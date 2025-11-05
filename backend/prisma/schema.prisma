@@ -25,6 +25,8 @@ model Product {
   imageUrl  String?
   categoryId Int?
   category   Category? @relation(fields: [categoryId], references: [id])
+  sales      Sale[]   @relation("SaleProducts")
+
 }
 model Category {
   id        Int       @id @default(autoincrement())
@@ -42,10 +44,12 @@ model Order {
 }
 
 model Sale {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   userId      Int
   totalPrice  Float
   paymentType String
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+  products    Product[] @relation("SaleProducts")
 }
+
