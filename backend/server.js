@@ -46,22 +46,25 @@ app.post("/products", async (req, res) => {
   try {
     const { name, price, imageUrl, categoryId, variants } = req.body;
 
+    console.log("GELEN BODY:", req.body); // ✅ Render log’da göreceğiz
+
     const product = await prisma.product.create({
       data: {
         name,
         price: price ? parseFloat(price) : null,
         imageUrl: imageUrl || null,
         categoryId: categoryId ? Number(categoryId) : null,
-        variants: variants ? variants : null  // 🔹 JSON alanı olarak kaydediliyor
+        variants: variants ? JSON.stringify(variants) : null, // ✅ JSON olarak kaydediyoruz
       },
     });
 
     res.json(product);
   } catch (err) {
-    console.error("Ürün ekleme hatası:", err);
+    console.error("❌ Ürün ekleme hatası:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 app.put("/products/:id", async (req, res) => {
