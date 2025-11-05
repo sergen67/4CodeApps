@@ -50,9 +50,11 @@ app.post("/products", async (req, res) => {
         price: price ? parseFloat(price) : 0,
         imageUrl: imageUrl || null,
         categoryId: categoryId ? Number(categoryId) : null,
-        variants: Array.isArray(variants)
-          ? variants  // ✅ doğrudan JSON olarak kaydet
-          : [],       // null ya da string gelirse boş liste
+       variants: Array.isArray(variants)
+  ? variants
+  : typeof variants === "string"
+    ? JSON.parse(variants)
+    : [],
       },
     });
 
@@ -69,7 +71,10 @@ app.get("/products", async (req, res) => {
     res.json(
       products.map((p) => ({
         ...p,
-        variants: p.variants || [], // null güvenliği
+        variants:
+          typeof p.variants === "string"
+            ? JSON.parse(p.variants)
+            : p.variants || [],
       }))
     );
   } catch (err) {
@@ -77,6 +82,7 @@ app.get("/products", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // 🔹 Ürün güncelleme
