@@ -160,6 +160,10 @@ app.get("/sales/daily", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ✅ Root route - Render test
+app.get("/", (req, res) => {
+  res.send("✅ 4CodeApp backend aktif ve çalışıyor.");
+});
 
 /* ------------------ SERVER ------------------ */
 const PORT = process.env.PORT || 10000;
