@@ -37,11 +37,22 @@ app.post("/login", async (req, res) => {
 });
 
 /* ------------------ PRODUCTS ------------------ */
-const products = await prisma.product.findMany();
-res.json(products.map(p => ({
-  ...p,
-  variants: p.variants || [] // ✅ null değil, boş dizi gönder
-})));
+// ✅ Ürünleri getir (null-safe variants düzeltildi)
+app.get("/products", async (req, res) => {
+  try {
+    const products = await prisma.product.findMany();
+    res.json(
+      products.map(p => ({
+        ...p,
+        variants: p.variants || [] // null ise boş dizi gönder
+      }))
+    );
+  } catch (err) {
+    console.error("Ürün listesi hatası:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 app.post("/products", async (req, res) => {
