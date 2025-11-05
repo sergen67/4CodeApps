@@ -42,7 +42,7 @@ app.post("/products", async (req, res) => {
   try {
     const { name, price, imageUrl, categoryId, variants } = req.body;
 
-    console.log("GELEN BODY:", req.body);
+    console.log("📦 Yeni ürün:", req.body);
 
     const product = await prisma.product.create({
       data: {
@@ -50,7 +50,9 @@ app.post("/products", async (req, res) => {
         price: price ? parseFloat(price) : 0,
         imageUrl: imageUrl || null,
         categoryId: categoryId ? Number(categoryId) : null,
-        variants: variants || [], // JSON olarak sakla
+        variants: Array.isArray(variants)
+          ? variants  // ✅ doğrudan JSON olarak kaydet
+          : [],       // null ya da string gelirse boş liste
       },
     });
 
@@ -61,14 +63,13 @@ app.post("/products", async (req, res) => {
   }
 });
 
-// 🔹 Ürünleri listeleme
 app.get("/products", async (req, res) => {
   try {
     const products = await prisma.product.findMany();
     res.json(
       products.map((p) => ({
         ...p,
-        variants: p.variants || [], // null değil
+        variants: p.variants || [], // null güvenliği
       }))
     );
   } catch (err) {
@@ -76,6 +77,7 @@ app.get("/products", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // 🔹 Ürün güncelleme
 app.put("/products/:id", async (req, res) => {
