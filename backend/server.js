@@ -91,8 +91,11 @@ app.get("/products", async (req, res) => {
 app.post("/sales", async (req, res) => {
   try {
     const { userId, totalPrice, paymentType } = req.body;
-    if (!userId || !totalPrice || !paymentType)
-      return res.status(400).json({ error: "Eksik bilgi gönderildi" });
+    console.log("📩 Gelen satış verisi:", req.body);
+
+    if (!userId || !totalPrice || !paymentType) {
+      return res.status(400).json({ error: "Eksik bilgi gönderildi." });
+    }
 
     const sale = await prisma.sale.create({
       data: {
@@ -104,9 +107,11 @@ app.post("/sales", async (req, res) => {
 
     res.json(sale);
   } catch (err) {
+    console.error("Satış oluşturulamadı:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 app.get("/sales", async (req, res) => {
   try {
