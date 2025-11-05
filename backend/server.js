@@ -12,17 +12,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ------------------ USER REGISTER ------------------ */
+/* ------------------ REGISTER ------------------ */
 app.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
     const hashed = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { name, email, password: hashed, role: role || "user" },
+      data: { name, email, password: hashed, role: role || "employee" },
     });
     res.json(user);
   } catch (err) {
-    console.error(err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -36,13 +35,10 @@ app.post("/login", async (req, res) => {
   res.json(user);
 });
 
-/* ------------------ PRODUCTS ------------------ */
-// 🔹 Ürün ekleme (Helvalar dahil)
+/* ------------------ PRODUCT ADD ------------------ */
 app.post("/products", async (req, res) => {
   try {
     const { name, price, imageUrl, categoryId, variants } = req.body;
-
-    console.log("📦 Yeni ürün:", req.body);
 
     const product = await prisma.product.create({
       data: {
@@ -50,11 +46,7 @@ app.post("/products", async (req, res) => {
         price: price ? parseFloat(price) : 0,
         imageUrl: imageUrl || null,
         categoryId: categoryId ? Number(categoryId) : null,
-       variants: Array.isArray(variants)
-  ? variants
-  : typeof variants === "string"
-    ? JSON.parse(variants)
-    : [],
+        variants: variants ? variants : [], // JSON alanı olarak kaydet
       },
     });
 
@@ -65,9 +57,13 @@ app.post("/products", async (req, res) => {
   }
 });
 
+/* ------------------ PRODUCT LIST ------------------ */
 app.get("/products", async (req, res) => {
   try {
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+      include: { category: true },
+    });
+
     res.json(
       products.map((p) => ({
         ...p,
@@ -78,50 +74,16 @@ app.get("/products", async (req, res) => {
       }))
     );
   } catch (err) {
-    console.error("Ürün listesi hatası:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-
-// 🔹 Ürün güncelleme
-app.put("/products/:id", async (req, res) => {
-  try {
-    const { name, price, categoryId } = req.body;
-    const product = await prisma.product.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        name,
-        price: parseFloat(price),
-        categoryId: categoryId ? Number(categoryId) : null,
-      },
-    });
-    res.json(product);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 🔹 Ürün silme
-app.delete("/products/:id", async (req, res) => {
-  try {
-    await prisma.product.delete({ where: { id: parseInt(req.params.id) } });
-    res.json({ message: "Ürün silindi" });
-  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 /* ------------------ SALES ------------------ */
-// 🔹 Satış oluşturma
 app.post("/sales", async (req, res) => {
   try {
     const { userId, totalPrice, paymentType } = req.body;
-
-    if (!userId || !totalPrice || !paymentType) {
-      return res.status(400).json({ error: "Eksik bilgi gönderildi." });
-    }
+    if (!userId || !totalPrice || !paymentType)
+      return res.status(400).json({ error: "Eksik bilgi gönderildi" });
 
     const sale = await prisma.sale.create({
       data: {
@@ -133,21 +95,39 @@ app.post("/sales", async (req, res) => {
 
     res.json(sale);
   } catch (err) {
-    console.error("Satış oluşturulamadı:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// 🔹 Satışları listeleme
 app.get("/sales", async (req, res) => {
   try {
     const sales = await prisma.sale.findMany({
-      include: { user: { select: { id: true, name: true, email: true, role: true } } },
+      include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
     res.json(sales);
   } catch (err) {
-    console.error("Satış listesi alınamadı:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ------------------ CATEGORIES ------------------ */
+app.get("/categories", async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany();
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/categories", async (req, res) => {
+  try {
+    const category = await prisma.category.create({
+      data: { name: req.body.name },
+    });
+    res.json(category);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -167,63 +147,6 @@ app.get("/sales/daily", async (req, res) => {
   }
 });
 
-app.get("/sales/weekly", async (req, res) => {
-  try {
-    const result = await prisma.$queryRaw`
-      SELECT DATE("createdAt") as date, SUM("totalPrice") as total
-      FROM "Sale"
-      WHERE "createdAt" >= NOW() - INTERVAL '7 days'
-      GROUP BY DATE("createdAt")
-      ORDER BY date DESC;
-    `;
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/sales/monthly", async (req, res) => {
-  try {
-    const result = await prisma.$queryRaw`
-      SELECT DATE_TRUNC('month', "createdAt") as month, SUM("totalPrice") as total
-      FROM "Sale"
-      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
-      GROUP BY month
-      ORDER BY month DESC;
-    `;
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ------------------ CATEGORIES ------------------ */
-app.get("/categories", async (req, res) => {
-  try {
-    const categories = await prisma.category.findMany({
-      include: { _count: { select: { products: true } } },
-    });
-    res.json(categories);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post("/categories", async (req, res) => {
-  const { name } = req.body;
-  try {
-    const category = await prisma.category.create({ data: { name } });
-    res.json(category);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-/* ------------------ ROOT ROUTE ------------------ */
-app.get("/", (req, res) => {
-  res.send("✅ 4CodeApp backend aktif ve çalışıyor.");
-});
-
-/* ------------------ SERVER START ------------------ */
+/* ------------------ SERVER ------------------ */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda`));
