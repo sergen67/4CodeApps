@@ -160,6 +160,33 @@ app.get("/sales/daily", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get("/sales/weekly", async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT SUM("totalPrice") AS total
+      FROM "Sale"
+      WHERE "createdAt" >= NOW() - INTERVAL '7 day'
+    `;
+    res.json(result);
+  } catch (err) {
+    console.error("Haftalık ciro hatası:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get("/sales/monthly", async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT SUM("totalPrice") AS total
+      FROM "Sale"
+      WHERE "createdAt" >= NOW() - INTERVAL '30 day'
+    `;
+    res.json(result);
+  } catch (err) {
+    console.error("Aylık ciro hatası:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ✅ Root route - Render test
 app.get("/", (req, res) => {
   res.send("✅ 4CodeApp backend aktif ve çalışıyor.");
