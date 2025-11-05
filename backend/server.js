@@ -37,10 +37,12 @@ app.post("/login", async (req, res) => {
 });
 
 /* ------------------ PRODUCTS ------------------ */
-app.get("/products", async (req, res) => {
-  const products = await prisma.product.findMany();
-  res.json(products);
-});
+const products = await prisma.product.findMany();
+res.json(products.map(p => ({
+  ...p,
+  variants: p.variants || [] // ✅ null değil, boş dizi gönder
+})));
+
 
 app.post("/products", async (req, res) => {
   try {
