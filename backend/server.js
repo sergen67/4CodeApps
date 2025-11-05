@@ -46,7 +46,8 @@ app.post("/products", async (req, res) => {
         price: price ? parseFloat(price) : 0,
         imageUrl: imageUrl || null,
         categoryId: categoryId ? Number(categoryId) : null,
-        variants: variants ? variants : [], // JSON alanı olarak kaydet
+        // ✅ JSON alanı olduğu için string'e çevirme YOK
+        variants: variants ? variants : [],
       },
     });
 
@@ -64,16 +65,24 @@ app.get("/products", async (req, res) => {
       include: { category: true },
     });
 
+    // ✅ Eğer JSON verisi string olarak saklanmışsa çözümle
     res.json(
       products.map((p) => ({
-        ...p,
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        imageUrl: p.imageUrl,
+        categoryId: p.categoryId,
+        category: p.category?.name || null,
         variants:
           typeof p.variants === "string"
             ? JSON.parse(p.variants)
             : p.variants || [],
+        createdAt: p.createdAt,
       }))
     );
   } catch (err) {
+    console.error("Ürün listesi hatası:", err);
     res.status(500).json({ error: err.message });
   }
 });
