@@ -27,11 +27,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainActivityContent() {
     val nav = rememberNavController()
-    val vm: MainViewModel = viewModel() // ortak ViewModel
+    val vm: MainViewModel = viewModel()
     var currentUser by remember { mutableStateOf<User?>(null) }
 
     NavHost(navController = nav, startDestination = "login") {
 
+        // 🔹 Giriş ekranı
         composable("login") {
             LoginScreen(nav) { loggedInUser ->
                 currentUser = loggedInUser
@@ -44,16 +45,23 @@ fun MainActivityContent() {
         }
 
         composable("register") { RegisterScreen(nav) }
-        composable("products") { ProductListScreen(nav, vm) } // 🔹 vm geçiyoruz
 
-        composable("cart") {
+        // 🔹 Ürün listesi (çalışan tarafı)
+        composable("products") {
+            ProductListScreen(nav,vm)
+        }
+
+        // 🔹 Sepet ve ödeme ekranı (parametre: toplam fiyat)
+        composable("cart/{totalPrice}") { backStackEntry ->
+            val totalPrice = backStackEntry.arguments?.getString("totalPrice")?.toDoubleOrNull() ?: 0.0
             currentUser?.let { user ->
-                CartScreen(nav, user, vm) // 🔹 aynı vm
+                CartScreen(nav, currentUser!!, vm)
             }
         }
 
+
         composable("orders") { OrderListScreen(nav) }
+
         composable("admin") { AdminScreen(nav) }
     }
 }
-

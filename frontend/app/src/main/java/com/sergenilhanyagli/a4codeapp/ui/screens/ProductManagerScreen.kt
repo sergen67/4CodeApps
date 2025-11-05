@@ -158,6 +158,71 @@ fun ProductAddTab(modifier: Modifier = Modifier) {
             }
         }
     }
+    if (selectedCategoryName == "Helvalar") {
+        Spacer(Modifier.height(16.dp))
+        Text("Varyasyonlar", fontWeight = FontWeight.SemiBold)
+
+        var small by remember { mutableStateOf("") }
+        var large by remember { mutableStateOf("") }
+        var smallIce by remember { mutableStateOf("") }
+        var largeIce by remember { mutableStateOf("") }
+
+        OutlinedTextField(
+            value = small,
+            onValueChange = { small = it },
+            label = { Text("Küçük Boy Fiyat") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = large,
+            onValueChange = { large = it },
+            label = { Text("Büyük Boy Fiyat") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = smallIce,
+            onValueChange = { smallIce = it },
+            label = { Text("Küçük Dondurmalı Fiyat") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = largeIce,
+            onValueChange = { largeIce = it },
+            label = { Text("Büyük Dondurmalı Fiyat") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // 🔹 Kaydet butonuna basıldığında:
+        Button(
+            onClick = {
+                scope.launch {
+                    val body = hashMapOf<String, Any>(
+                        "name" to name,
+                        "categoryId" to selectedCategoryId!!,
+                        "variants" to listOf(
+                            mapOf("name" to "Küçük", "price" to small.toDoubleOrNull() ?: 0.0),
+                            mapOf("name" to "Büyük", "price" to large.toDoubleOrNull() ?: 0.0),
+                            mapOf("name" to "Küçük Dondurmalı", "price" to smallIce.toDoubleOrNull() ?: 0.0),
+                            mapOf("name" to "Büyük Dondurmalı", "price" to largeIce.toDoubleOrNull() ?: 0.0)
+                        )
+                    )
+                    val res = ApiClient.instance.createProduct(HashMap(body))
+                    if (res.isSuccessful) {
+                        snackbarHost.showSnackbar("✅ Helva varyasyonlarıyla eklendi")
+                    } else {
+                        snackbarHost.showSnackbar("❌ Hata: ${res.code()}")
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Helva Ürününü Kaydet")
+        }
+    }
+
 }
 
 @Composable

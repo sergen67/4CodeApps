@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.sergenilhanyagli.a4codeapp.data.ApiClient
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,56 +27,44 @@ fun RevenueScreen(nav: NavHostController) {
     var expanded by remember { mutableStateOf(false) }
     var selectedRange by remember { mutableStateOf("Günlük") }
     var totalRevenue by remember { mutableStateOf(0.0) }
+    var totalOrders by remember { mutableStateOf(0) }
     var sales by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
-    var searchQuery by remember { mutableStateOf("") }
 
     val ranges = listOf("Günlük", "Haftalık", "Aylık")
 
     LaunchedEffect(selectedRange) {
         scope.launch {
             try {
-                val response = when (selectedRange) {
-                    "Haftalık" -> ApiClient.instance.getSalesWeekly()
-                    "Aylık" -> ApiClient.instance.getSalesMonthly()
-                    else -> ApiClient.instance.getSalesDaily()
+                val list = when (selectedRange) {
+                    "Haftalık" -> ApiClient.instance.getSalesWeekly().body() ?: emptyList()
+                    "Aylık" -> ApiClient.instance.getSalesMonthly().body() ?: emptyList()
+                    else -> ApiClient.instance.getSalesDaily().body() ?: emptyList()
                 }
 
-                if (response.isSuccessful) {
-                    val list = response.body() ?: emptyList()
-                    sales = list
+                // 🔹 Ciro toplamı
+                totalRevenue = list.sumOf { (it["total"] as? Number)?.toDouble() ?: 0.0 }
 
-                    totalRevenue = list.fold(0.0) { acc, item ->
-                        acc + ((item["total"] as? Number)?.toDouble() ?: 0.0)
-                    }
-                } else {
-                    sales = emptyList()
-                    totalRevenue = 0.0
-                }
+                // 🔹 Gerçek sipariş sayısı
+                val allSales = ApiClient.instance.getSales().body() ?: emptyList()
+                totalOrders = allSales.size  // ✅ Tüm satış kayıtlarını say
+
+                // 🔹 Satış listesini güncelle
+                sales = allSales.sortedByDescending { it["createdAt"].toString() }
+
             } catch (e: Exception) {
-                sales = emptyList()
                 totalRevenue = 0.0
+                totalOrders = 0
+                sales = emptyList()
             }
         }
     }
 
-    val filteredSales = sales.filter {
-        val userName = (it["user"] as? Map<*, *>)?.get("name")?.toString()?.lowercase() ?: ""
-        val productName = it["product"]?.toString()?.lowercase() ?: ""
-        searchQuery.lowercase() in userName || searchQuery.lowercase() in productName
-    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Ciro ve Satışlar", fontWeight = FontWeight.SemiBold) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                modifier = Modifier.background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFFB49AF7), Color(0xFFD7C8FA))
-                    )
-                )
+                title = { Text("Ciro Raporu", fontWeight = FontWeight.SemiBold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF7B61FF))
             )
         }
     ) { pad ->
@@ -93,7 +81,6 @@ fun RevenueScreen(nav: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             // 🔽 Zaman Aralığı Seçimi
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -105,9 +92,7 @@ fun RevenueScreen(nav: NavHostController) {
                     readOnly = true,
                     label = { Text("Zaman Aralığı") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
                 ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     ranges.forEach { range ->
@@ -122,86 +107,110 @@ fun RevenueScreen(nav: NavHostController) {
                 }
             }
 
-            // 🔹 Ciro Kartı
-            InfoCard(
-                title = "Toplam Ciro",
-                value = "%.2f ₺".format(totalRevenue),
-                color = Color(0xFF9C8DF5),
+            // 🔹 Bilgi Kartları
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                InfoCard(
+                    title = "Toplam Ciro",
+                    value = "%.2f ₺".format(totalRevenue),
+                    color = Color(0xFF9C8DF5),
+                    modifier = Modifier.weight(1f)
+                )
+                InfoCard(
+                    title = "Toplam Sipariş",
+                    value = "$totalOrders adet",
+                    color = Color(0xFFBBA9F6),
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-            // 🔍 Arama Alanı
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Ara") },
-                label = { Text("Satıcı veya ürün ara") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp)
-            )
+            Divider(Modifier.padding(vertical = 8.dp))
 
-            Spacer(Modifier.height(8.dp))
+            // 🔹 Satış Listesi (Tamamı)
+            Text("📜 Satış Geçmişi", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
 
-            // 🔹 Satış Listesi
-            if (filteredSales.isEmpty()) {
-                Text("Sonuç bulunamadı", color = Color.Gray)
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(filteredSales) { sale ->
-                        SaleItemCard(sale)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (sales.isEmpty()) {
+                    item {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Henüz satış yapılmadı", color = Color.Gray)
+                        }
+                    }
+                } else {
+                    items(sales) { sale ->
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F4FF)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                // 🔹 Satıcı adını düzgün göster
+                                val userMap = sale["user"] as? Map<*, *>
+                                val sellerName = userMap?.get("name")?.toString() ?: "Bilinmiyor"
+
+                                // 🔹 Tarihi biçimlendir
+                                val rawDate = sale["createdAt"]?.toString() ?: ""
+                                val formattedDate = try {
+                                    val inputFormat = SimpleDateFormat(
+                                        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                                        Locale.getDefault()
+                                    )
+                                    val outputFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+                                    val parsed = inputFormat.parse(rawDate)
+                                    outputFormat.format(parsed ?: "")
+                                } catch (e: Exception) {
+                                    rawDate
+                                }
+
+                                Text("👤 Satıcı: $sellerName", fontWeight = FontWeight.Medium, color = Color(0xFF4A3AFF))
+                                Text("💰 Tutar: ${sale["totalPrice"] ?: 0} ₺", fontSize = 15.sp)
+                                Text("💳 Ödeme: ${sale["paymentType"] ?: "Bilinmiyor"}", fontSize = 15.sp)
+                                Text("📅 Tarih: $formattedDate", fontSize = 14.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+                        }
                     }
                 }
             }
         }
-    }
-}
 
 @Composable
-fun InfoCard(title: String, value: String, color: Color, modifier: Modifier = Modifier) {
+fun InfoCard(
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.15f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(24.dp),
-        modifier = modifier.height(100.dp)
+        modifier = modifier.height(120.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = color)
             Spacer(Modifier.height(8.dp))
             Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = color)
-        }
-    }
-}
-
-@Composable
-fun SaleItemCard(sale: Map<String, Any>) {
-    val userName = (sale["user"] as? Map<*, *>)?.get("name")?.toString() ?: "Bilinmiyor"
-    val total = (sale["totalPrice"] as? Number)?.toDouble() ?: 0.0
-    val createdAt = sale["createdAt"]?.toString()?.take(10) ?: "Tarih yok"
-    val payment = sale["paymentType"]?.toString() ?: "Bilinmiyor"
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1EDFE)),
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            val userName = (sale["user"] as? Map<*, *>)?.get("name")?.toString() ?: "Bilinmiyor"
-            val total = (sale["totalPrice"] as? Number)?.toDouble() ?: 0.0
-            val payment = sale["paymentType"]?.toString() ?: "Bilinmiyor"
-            val createdAt = sale["createdAt"]?.toString()?.take(10) ?: "Tarih yok"
-
         }
     }
 }
