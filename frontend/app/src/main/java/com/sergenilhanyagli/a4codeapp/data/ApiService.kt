@@ -45,7 +45,8 @@ interface ApiService {
     @POST("register")
     suspend fun register(@Body user: HashMap<String, Any>): Response<User>
     @POST("sales")
-    suspend fun createSale(@Body sale: HashMap<String, Any>): Response<Map<String, Any>>
+    suspend fun createSale(@Body body: HashMap<String, Any>): Response<Map<String, Any>>
+
 
     @GET("sales")
     suspend fun getSales(): Response<List<Map<String, Any>>>

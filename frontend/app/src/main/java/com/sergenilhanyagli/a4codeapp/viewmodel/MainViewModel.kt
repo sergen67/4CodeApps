@@ -1,4 +1,5 @@
 package com.sergenilhanyagli.a4codeapp.viewmodel
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -9,14 +10,15 @@ import com.sergenilhanyagli.a4codeapp.data.models.CartItem
 import com.sergenilhanyagli.a4codeapp.data.models.LoginRequest
 import com.sergenilhanyagli.a4codeapp.data.models.Product
 import com.sergenilhanyagli.a4codeapp.data.models.User
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainViewModel : ViewModel() {
     var products = mutableStateListOf<Product>()
     var user by mutableStateOf<User?>(null)
-    var cart = mutableStateListOf<Product>()
-    val cartItems: List<CartItem> get() = _cartItems
     private val _cartItems = mutableStateListOf<CartItem>()
+    val cartItems: List<CartItem> get() = _cartItems
+
     suspend fun loadProducts() {
         val res = ApiClient.instance.getProducts()
         if (res.isSuccessful) {
@@ -33,34 +35,68 @@ class MainViewModel : ViewModel() {
         } else false
     }
 
-    // 🔹 Sepete ürün ekleme (aynı ürün varsa miktar artar)
+    // 🔹 Ürün sepete ekle (aynıysa miktar +1)
     fun addToCart(product: Product) {
-        val index = _cartItems.indexOfFirst { it.product.id == product.id }
+        val index = _cartItems.indexOfFirst { it.product.name == product.name }
         if (index != -1) {
-            val oldItem = _cartItems[index]
-            val newItem = oldItem.copy(quantity = oldItem.quantity + 1)
-            _cartItems[index] = newItem // ⚡ listeye yeniden atıyoruz ki Compose güncellesin
+            val old = _cartItems[index]
+            _cartItems[index] = old.copy(quantity = old.quantity + 1)
         } else {
             _cartItems.add(CartItem(product, 1))
         }
     }
 
-    // 🔹 Ürün azaltma / silme
+    // 🔹 Ürün azalt veya sil
     fun removeFromCart(product: Product) {
-        val index = _cartItems.indexOfFirst { it.product.id == product.id }
+        val index = _cartItems.indexOfFirst { it.product.name == product.name }
         if (index != -1) {
-            val oldItem = _cartItems[index]
-            if (oldItem.quantity > 1) {
-                _cartItems[index] = oldItem.copy(quantity = oldItem.quantity - 1)
-            } else {
+            val old = _cartItems[index]
+            if (old.quantity > 1)
+                _cartItems[index] = old.copy(quantity = old.quantity - 1)
+            else
                 _cartItems.removeAt(index)
-            }
         }
     }
 
+    // 🔹 Sepeti tamamen temizle
     fun clearCart() {
         _cartItems.clear()
     }
 
+    // 🔹 Toplam tutar
     fun totalPrice(): Double = _cartItems.sumOf { it.product.price * it.quantity }
+
+    suspend fun completeSale(paymentType: String): Boolean {
+        return try {
+            val currentUser = user ?: return false
+            val total = totalPrice()
+
+            println("🧾 SATIŞ BAŞLATILIYOR")
+            println("➡️ userId=${currentUser.id}, totalPrice=$total, paymentType=$paymentType")
+
+            val body = hashMapOf<String, Any>(
+                "userId" to (currentUser.id ?: 0),
+                "totalPrice" to total,
+                "paymentType" to paymentType
+            )
+
+            val res = ApiClient.instance.createSale(HashMap(body))
+            println("⬅️ Yanıt kodu: ${res.code()}, başarı: ${res.isSuccessful}")
+
+            if (res.isSuccessful) {
+                println("✅ Satış tamamlandı!")
+                clearCart()
+                true
+            } else {
+                println("❌ Sunucu hatası: ${res.errorBody()?.string()}")
+                false
+            }
+        } catch (e: Exception) {
+            println("🚨 HATA (completeSale): ${e.message}")
+            false
+        }
+    }
+
+
+
 }

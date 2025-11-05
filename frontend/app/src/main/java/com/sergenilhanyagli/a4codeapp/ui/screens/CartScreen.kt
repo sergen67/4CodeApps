@@ -13,9 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.sergenilhanyagli.a4codeapp.viewmodel.MainViewModel
-import com.sergenilhanyagli.a4codeapp.data.ApiClient
-import kotlinx.coroutines.launch
 import com.sergenilhanyagli.a4codeapp.data.models.User
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +24,6 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
     val scope = rememberCoroutineScope()
     var showPaymentDialog by remember { mutableStateOf(false) }
     var selectedPayment by remember { mutableStateOf<String?>(null) }
-    var showConfirmDialog by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
 
     Scaffold(
@@ -61,12 +59,7 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
         }
     ) { pad ->
         if (cartItems.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(pad),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
                 Text("Sepetiniz boş", color = Color.Gray)
             }
         } else {
@@ -84,7 +77,7 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier
+                            Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -97,20 +90,15 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
                                 Text("Adet: ${item.quantity}")
                             }
 
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedButton(
                                     onClick = { vm.removeFromCart(item.product) },
-                                    shape = RoundedCornerShape(50),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    shape = RoundedCornerShape(50)
                                 ) { Text("-") }
 
                                 OutlinedButton(
                                     onClick = { vm.addToCart(item.product) },
-                                    shape = RoundedCornerShape(50),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    shape = RoundedCornerShape(50)
                                 ) { Text("+") }
                             }
                         }
@@ -120,7 +108,7 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
         }
     }
 
-    // 🔹 Ödeme türü seçimi
+    // 🔹 Ödeme tipi seçimi
     if (showPaymentDialog) {
         AlertDialog(
             onDismissRequest = { showPaymentDialog = false },
@@ -135,16 +123,26 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
                                 .clickable {
                                     selectedPayment = type
                                     showPaymentDialog = false
-                                    showConfirmDialog = true
+                                    scope.launch {
+                                        val success = vm.completeSale(type)
+                                        message =
+                                            if (success) "✅ Ödeme başarıyla alındı"
+                                            else "❌ Ödeme başarısız"
+                                    }
                                 }
-                                .padding(vertical = 8.dp)
+                                .padding(8.dp)
                         ) {
                             RadioButton(
                                 selected = selectedPayment == type,
                                 onClick = {
                                     selectedPayment = type
                                     showPaymentDialog = false
-                                    showConfirmDialog = true
+                                    scope.launch {
+                                        val success = vm.completeSale(type)
+                                        message =
+                                            if (success) "✅ Ödeme başarıyla alındı"
+                                            else "❌ Ödeme başarısız"
+                                    }
                                 }
                             )
                             Text(type)
@@ -154,46 +152,7 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { showPaymentDialog = false }) {
-                    Text("İptal")
-                }
-            }
-        )
-    }
-
-    // 🔹 Emin misiniz dialogu
-    if (showConfirmDialog && selectedPayment != null) {
-        AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Ödemeyi Onayla") },
-            text = { Text("${selectedPayment} ile ödeme alınsın mı?") },
-            confirmButton = {
-                Button(onClick = {
-                    scope.launch {
-                        try {
-                            val body = hashMapOf<String, Any>(
-                                "userId" to (currentUser.id ?: 0), // 🔹 null olursa 0 gönder
-                                "totalPrice" to total,
-                                "paymentType" to selectedPayment!!
-                            )
-
-                            val res = ApiClient.instance.createSale(body)
-                            if (res.isSuccessful) {
-                                message = "✅ Ödeme başarıyla alındı"
-                                vm.clearCart()
-                            } else {
-                                message = "❌ Hata: ${res.code()}"
-                            }
-                        } catch (e: Exception) {
-                            message = "⚠️ Hata: ${e.message}"
-                        } finally {
-                            showConfirmDialog = false
-                        }
-                    }
-                }) { Text("Evet") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) { Text("Hayır") }
+                TextButton(onClick = { showPaymentDialog = false }) { Text("İptal") }
             }
         )
     }

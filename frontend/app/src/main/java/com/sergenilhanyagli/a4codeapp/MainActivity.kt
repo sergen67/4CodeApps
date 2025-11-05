@@ -52,10 +52,13 @@ fun MainActivityContent() {
         }
 
         // 🔹 Sepet ve ödeme ekranı (parametre: toplam fiyat)
-        composable("cart/{totalPrice}") { backStackEntry ->
-            val totalPrice = backStackEntry.arguments?.getString("totalPrice")?.toDoubleOrNull() ?: 0.0
+        composable("cart") {
+            // ✅ CartScreen parametreleri: nav, currentUser, vm
             currentUser?.let { user ->
-                CartScreen(nav, currentUser!!, vm)
+                CartScreen(nav, user, vm)
+            } ?: run {
+                // Kullanıcı boşsa girişe yönlendir
+                nav.navigate("login")
             }
         }
 

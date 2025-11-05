@@ -1,9 +1,10 @@
 package com.sergenilhanyagli.a4codeapp.data.models
+
 data class Product(
-    val id: Int? = null,
+    val id: Int,
     val name: String,
     val price: Double,
-    val imageUrl: String? = null,
-    val category: String,
-    val categoryId: Int?
+    val categoryId: Int?,
+    val category: String? = null,
+    val variants: List<Map<String, Any>>? = null
 )
