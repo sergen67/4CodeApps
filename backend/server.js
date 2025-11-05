@@ -164,6 +164,14 @@ app.get("/sales/daily", async (req, res) => {
 app.get("/", (req, res) => {
   res.send("✅ 4CodeApp backend aktif ve çalışıyor.");
 });
+app.get("/users", async (req, res) => {
+  try {
+    const users = await prisma.user.findMany();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /* ------------------ SERVER ------------------ */
 const PORT = process.env.PORT || 10000;
