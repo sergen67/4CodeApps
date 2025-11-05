@@ -26,7 +26,7 @@ model Product {
   categoryId Int?
   category   Category? @relation(fields: [categoryId], references: [id])
   sales      Sale[]   @relation("SaleProducts")
-   variants    Json?     // 🔹 JSONB sütunu (farklı varyasyonları tutacak)
+  variants    Json?     // 🔹 JSONB sütunu (farklı varyasyonları tutacak)
 
 }
 model Category {
