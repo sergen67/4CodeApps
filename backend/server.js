@@ -136,15 +136,29 @@ app.post("/sales", async (req, res) => {
 
 app.get("/sales", async (req, res) => {
   try {
+    const { start, end } = req.query;
+
+    const where = {};
+    if (start && end) {
+      where.createdAt = {
+        gte: new Date(`${start}T00:00:00Z`),
+        lte: new Date(`${end}T23:59:59Z`),
+      };
+    }
+
     const sales = await prisma.sale.findMany({
+      where,
       include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
+
     res.json(sales);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 /* ------------------ CATEGORIES ------------------ */
 app.get("/categories", async (req, res) => {
