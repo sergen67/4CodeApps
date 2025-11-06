@@ -28,12 +28,22 @@ class MainViewModel : ViewModel() {
     }
 
     suspend fun login(email: String, password: String): Boolean {
-        val res = ApiClient.instance.login(LoginRequest(email, password))
-        return if (res.isSuccessful) {
-            user = res.body()
-            true
-        } else false
+        return try {
+            val res = ApiClient.instance.login(LoginRequest(email, password))
+            if (res.isSuccessful && res.body() != null) {
+                user = res.body() // ✅ kullanıcıyı kaydet
+                println("✅ Giriş başarılı: ${user?.name} (id=${user?.id})")
+                true
+            } else {
+                println("❌ Giriş başarısız: ${res.code()}")
+                false
+            }
+        } catch (e: Exception) {
+            println("⚠️ Hata (login): ${e.message}")
+            false
+        }
     }
+
 
     // 🔹 Ürün sepete ekle (aynıysa miktar +1)
     fun addToCart(product: Product) {
@@ -67,6 +77,9 @@ class MainViewModel : ViewModel() {
     fun totalPrice(): Double = _cartItems.sumOf { it.product.price * it.quantity }
 
     suspend fun completeSale(paymentType: String): Boolean {
+        println("💳 completeSale() tetiklendi")
+        println("🧾 userId=${user?.id}, totalPrice=${totalPrice()}, paymentType=$paymentType")
+
         return try {
             val currentUser = user ?: return false
             val total = totalPrice()
@@ -74,21 +87,24 @@ class MainViewModel : ViewModel() {
             println("🧾 SATIŞ BAŞLATILIYOR")
             println("➡️ userId=${currentUser.id}, totalPrice=$total, paymentType=$paymentType")
 
+            // 🔹 Backend’in beklediği formatta body
             val body = hashMapOf<String, Any>(
                 "userId" to (currentUser.id ?: 0),
                 "totalPrice" to total,
                 "paymentType" to paymentType
             )
 
+            // 🔹 Doğrudan POST isteği
             val res = ApiClient.instance.createSale(HashMap(body))
-            println("⬅️ Yanıt kodu: ${res.code()}, başarı: ${res.isSuccessful}")
+            println("⬅️ Yanıt kodu: ${res.code()}, başarılı mı: ${res.isSuccessful}")
 
             if (res.isSuccessful) {
-                println("✅ Satış tamamlandı!")
-                clearCart()
+                println("✅ Satış kaydı oluşturuldu.")
+                clearCart() // sepeti boşalt
                 true
             } else {
-                println("❌ Sunucu hatası: ${res.errorBody()?.string()}")
+                val error = res.errorBody()?.string()
+                println("❌ Sunucu hatası: $error")
                 false
             }
         } catch (e: Exception) {
@@ -96,6 +112,7 @@ class MainViewModel : ViewModel() {
             false
         }
     }
+
 
 
 

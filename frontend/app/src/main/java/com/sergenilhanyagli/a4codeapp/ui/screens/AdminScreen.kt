@@ -21,72 +21,57 @@ fun AdminScreen(nav: NavHostController) {
     val tabs = listOf("Ürünler", "Çalışanlar", "Ciro", "Kategoriler")
 
     Scaffold(
+        containerColor = Color(0xFFF6F3FF),
         topBar = {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF9C8DF5),
-                                Color(0xFFBBA9F6),
-                                Color(0xFFEDEAFF)
-                            )
-                        )
-                    )
-                    .padding(bottom = 8.dp)
-            ) {
-                // 🔹 Başlık
-                Text(
-                    text = "Admin Paneli",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(16.dp)
-                )
-
-                // 🔹 Sekme Menüsü
-                ScrollableTabRow(
-                    selectedTabIndex = selectedTab,
-                    edgePadding = 12.dp,
-                    indicator = { tabPositions ->
-                        Box(
-                            Modifier
-                                .tabIndicatorOffset(tabPositions[selectedTab])
-                                .padding(horizontal = 20.dp)
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.8f))
-                        )
-                    },
-                    divider = {},
-                    containerColor = Color.Transparent
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            text = {
-                                Text(
-                                    text = title,
-                                    color = if (selectedTab == index)
-                                        Color.White else Color(0xFF4B3E82),
-                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium
-                                )
-                            }
-                        )
-                    }
-                }
-            }
+            CenterAlignedTopAppBar(
+                title = { Text("Admin Paneli", color = Color.White, fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF7B61FF))
+            )
         }
     ) { pad ->
-        Box(Modifier.padding(pad)) {
-            when (selectedTab) {
-                0 -> ProductManagerScreen(nav)
-                1 -> EmployeeManagerScreen(nav)
-                2 -> RevenueScreen(nav)
-                3 -> CategoryManagerScreen(nav)
+        Column(
+            Modifier
+                .padding(pad)
+                .fillMaxSize()
+        ) {
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color(0xFFEDE7FF),
+                edgePadding = 12.dp,
+                indicator = { tabPositions ->
+                    Box(
+                        Modifier
+                            .tabIndicatorOffset(tabPositions[selectedTab])
+                            .padding(horizontal = 20.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0xFF7B61FF))
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                title,
+                                color = if (selectedTab == index) Color(0xFF4A3AFF) else Color.Gray,
+                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                }
+            }
+
+            Box(Modifier.fillMaxSize().padding(12.dp)) {
+                when (selectedTab) {
+                    0 -> ProductManagerScreen(nav)
+                    1 -> EmployeeManagerScreen(nav)
+                    2 -> RevenueScreen()
+                    3 -> CategoryManagerScreen(nav)
+                }
             }
         }
     }
 }
-

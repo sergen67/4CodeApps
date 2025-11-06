@@ -86,6 +86,27 @@ app.get("/products", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// 🔹 Ürün Güncelleme
+app.put("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, variants } = req.body;
+
+    const updated = await prisma.product.update({
+      where: { id: parseInt(id) },
+      data: {
+        name: name,
+        price: price,
+        variants: variants ? JSON.stringify(variants) : undefined
+      }
+    });
+
+    res.json({ success: true, updated });
+  } catch (err) {
+    console.error("❌ Ürün güncelleme hatası:", err);
+    res.status(500).json({ error: "Güncelleme başarısız" });
+  }
+});
 
 /* ------------------ SALES ------------------ */
 app.post("/sales", async (req, res) => {

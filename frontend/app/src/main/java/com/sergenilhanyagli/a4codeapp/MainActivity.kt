@@ -35,6 +35,7 @@ fun MainActivityContent() {
         // 🔹 Giriş ekranı
         composable("login") {
             LoginScreen(nav) { loggedInUser ->
+                vm.user = loggedInUser
                 currentUser = loggedInUser
                 if (loggedInUser.role == "admin") {
                     nav.navigate("admin")

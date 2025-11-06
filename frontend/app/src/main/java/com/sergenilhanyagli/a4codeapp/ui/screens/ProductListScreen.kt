@@ -28,7 +28,7 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var showHelvaSheet by remember { mutableStateOf<Product?>(null) }
 
-    // 🔹 API'den kategorileri ve ürünleri yükle
+    // 🔹 API'den kategori ve ürünleri çek
     LaunchedEffect(Unit) {
         scope.launch {
             val catRes = ApiClient.instance.getCategories()
@@ -40,37 +40,37 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
     }
 
     Scaffold(
+        containerColor = Color(0xFFF6F3FF),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Satış Ekranı", color = Color.White) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFF7B61FF)
-                )
+                title = { Text("Satış Ekranı", color = Color.White, fontWeight = FontWeight.SemiBold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF7B61FF))
             )
         },
         bottomBar = {
             if (vm.cartItems.isNotEmpty()) {
                 Surface(
                     color = Color(0xFFEDE7FF),
-                    shadowElevation = 5.dp
+                    shadowElevation = 6.dp
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             "Toplam: %.2f ₺".format(vm.totalPrice()),
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4A3AFF)
+                            color = Color(0xFF4A3AFF),
+                            fontWeight = FontWeight.Bold
                         )
                         Button(
                             onClick = { nav.navigate("cart") },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF))
                         ) {
-                            Text("Ödemeye Geç")
+                            Text("Ödemeye Geç", color = Color.White)
                         }
                     }
                 }
@@ -82,9 +82,10 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
                 .fillMaxSize()
                 .padding(pad)
         ) {
-            // 🔹 Sol kategori menüsü
+            // 🔹 Kategori menüsü (sol)
             Surface(
-                color = Color(0xFFF6F3FF),
+                color = Color(0xFFF1ECFF),
+                tonalElevation = 3.dp,
                 modifier = Modifier
                     .width(130.dp)
                     .fillMaxHeight()
@@ -104,11 +105,13 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
                                 .clickable { selectedCategory = name }
                         ) {
                             Box(
-                                Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+                                Modifier
+                                    .padding(vertical = 10.dp, horizontal = 8.dp)
+                                    .fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    name,
+                                    text = name,
                                     color = if (selected) Color.White else Color.Black
                                 )
                             }
@@ -117,32 +120,25 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
                 }
             }
 
-            // 🔹 Sağ taraf (ürün listesi)
+            // 🔹 Ürün listesi (sağ)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(12.dp)
             ) {
-                val filteredProducts = if (selectedCategory == null)
-                    products
-                else
-                    products.filter { it.category == selectedCategory }
+                val filtered = if (selectedCategory == null) products else products.filter { it.category == selectedCategory }
 
-                if (filteredProducts.isEmpty()) {
+                if (filtered.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Bu kategoride ürün yok", color = Color.Gray)
                     }
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(filteredProducts) { product ->
-                            // 🔸 Helvalar
+                        items(filtered) { product ->
                             if (product.category == "Helvalar") {
-                                HelvaCard(product) { selected ->
-                                    showHelvaSheet = selected
-                                }
+                                HelvaCardModern(product) { showHelvaSheet = it }
                             } else {
-                                // 🔸 Normal ürün kartı
-                                NormalProductCard(vm, product)
+                                ProductCardModern(product, vm)
                             }
                         }
                     }
@@ -151,7 +147,7 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
         }
     }
 
-    // 🔹 Helva varyant seçim ekranı
+    // 🔹 Helva varyant alt sayfası
     showHelvaSheet?.let { helva ->
         ModalBottomSheet(
             onDismissRequest = { showHelvaSheet = null },
@@ -165,7 +161,7 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "${helva.name} Seçenekleri",
+                    "${helva.name} Varyantları",
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF6E4A00)
                 )
@@ -183,10 +179,7 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
                             .fillMaxWidth()
                             .clickable {
                                 vm.addToCart(
-                                    helva.copy(
-                                        name = "${helva.name} - $vName",
-                                        price = vPrice
-                                    )
+                                    helva.copy(name = "${helva.name} - $vName", price = vPrice)
                                 )
                                 showHelvaSheet = null
                             }
@@ -206,8 +199,8 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
 
                 Button(
                     onClick = { showHelvaSheet = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C6615)),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C6615))
                 ) {
                     Text("Kapat", color = Color.White)
                 }
@@ -216,35 +209,42 @@ fun ProductListScreen(nav: NavHostController, vm: MainViewModel) {
     }
 }
 
-/* 🔹 Normal Ürün Kartı */
+/* 🔹 Normal ürün kartı */
 @Composable
-fun NormalProductCard(vm: MainViewModel, product: Product) {
+fun ProductCardModern(product: Product, vm: MainViewModel) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F0FF)),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(12.dp)) {
-            Text(product.name, color = Color(0xFF4A3AFF), fontWeight = FontWeight.Medium)
+        Column(Modifier.padding(16.dp)) {
+            Text(product.name, color = Color(0xFF4A3AFF), fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
-            Text("%.2f ₺".format(product.price))
+            Text("%.2f ₺".format(product.price), color = Color.Gray)
             Spacer(Modifier.height(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedButton(onClick = { vm.removeFromCart(product) }) { Text("-") }
-                Button(onClick = { vm.addToCart(product) }) { Text("Sepete Ekle") }
-                OutlinedButton(onClick = { vm.addToCart(product) }) { Text("+") }
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { vm.removeFromCart(product) },
+                    shape = RoundedCornerShape(50)
+                ) { Text("-", color = Color(0xFF7B61FF)) }
+                Button(
+                    onClick = { vm.addToCart(product) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
+                    shape = RoundedCornerShape(50)
+                ) { Text("Sepete Ekle", color = Color.White) }
+                OutlinedButton(
+                    onClick = { vm.addToCart(product) },
+                    shape = RoundedCornerShape(50)
+                ) { Text("+", color = Color(0xFF7B61FF)) }
             }
         }
     }
 }
 
-/* 🔹 Helva Ürün Kartı */
+/* 🔹 Helva kartı */
 @Composable
-fun HelvaCard(product: Product, onSelect: (Product) -> Unit) {
+fun HelvaCardModern(product: Product, onSelect: (Product) -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E7)),
         shape = RoundedCornerShape(16.dp),
@@ -255,7 +255,7 @@ fun HelvaCard(product: Product, onSelect: (Product) -> Unit) {
     ) {
         Column(Modifier.padding(12.dp)) {
             Text(product.name, color = Color(0xFF9C6615), fontWeight = FontWeight.Bold)
-            Text("Tıklayarak varyant seç", color = Color.Gray, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+            Text("Tıklayarak varyant seç", color = Color.Gray)
         }
     }
 }

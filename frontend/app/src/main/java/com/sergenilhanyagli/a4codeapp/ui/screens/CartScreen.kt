@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.sergenilhanyagli.a4codeapp.viewmodel.MainViewModel
@@ -27,39 +29,51 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
     var message by remember { mutableStateOf("") }
 
     Scaffold(
+        containerColor = Color(0xFFF6F3FF),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Sepetim", color = Color.White) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFF7B61FF)
-                )
+                title = { Text("Sepetim", color = Color.White, fontWeight = FontWeight.SemiBold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF7B61FF))
             )
         },
         bottomBar = {
             if (cartItems.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                Surface(
+                    color = Color(0xFFEDE7FF),
+                    shadowElevation = 6.dp,
+                    tonalElevation = 4.dp
                 ) {
-                    Text(
-                        text = "Toplam: %.2f ₺".format(total),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = { showPaymentDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Ödemeye Geç")
+                        Text(
+                            text = "Toplam: %.2f ₺".format(total),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4A3AFF)
+                        )
+                        Button(
+                            onClick = { showPaymentDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Ödemeye Geç", color = Color.White)
+                        }
                     }
                 }
             }
         }
     ) { pad ->
         if (cartItems.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(pad),
+                contentAlignment = Alignment.Center
+            ) {
                 Text("Sepetiniz boş", color = Color.Gray)
             }
         } else {
@@ -67,39 +81,45 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(pad)
-                    .padding(12.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(cartItems) { item ->
                     Card(
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F0FF)),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
+                                .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(item.product.name, color = Color(0xFF4A3AFF))
+                                Text(item.product.name, color = Color(0xFF4A3AFF), fontWeight = FontWeight.Medium)
                                 Spacer(Modifier.height(4.dp))
-                                Text("Fiyat: %.2f ₺".format(item.product.price))
-                                Text("Adet: ${item.quantity}")
+                                Text("Fiyat: %.2f ₺".format(item.product.price), color = Color.Gray)
+                                Text("Adet: ${item.quantity}", color = Color(0xFF6B6B6B))
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedButton(
                                     onClick = { vm.removeFromCart(item.product) },
-                                    shape = RoundedCornerShape(50)
-                                ) { Text("-") }
+                                    shape = RoundedCornerShape(50),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp, brush = SolidColor(
+                                        Color(0xFF7B61FF)
+                                    )
+                                    )
+                                ) { Text("-", color = Color(0xFF7B61FF), fontWeight = FontWeight.Bold) }
 
                                 OutlinedButton(
                                     onClick = { vm.addToCart(item.product) },
-                                    shape = RoundedCornerShape(50)
-                                ) { Text("+") }
+                                    shape = RoundedCornerShape(50),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp, brush = SolidColor(Color(0xFF7B61FF)))
+                                ) { Text("+", color = Color(0xFF7B61FF), fontWeight = FontWeight.Bold) }
                             }
                         }
                     }
@@ -112,7 +132,7 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
     if (showPaymentDialog) {
         AlertDialog(
             onDismissRequest = { showPaymentDialog = false },
-            title = { Text("Ödeme Türü Seç") },
+            title = { Text("Ödeme Türü Seç", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     listOf("Kart", "Nakit").forEach { type ->
@@ -125,9 +145,7 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
                                     showPaymentDialog = false
                                     scope.launch {
                                         val success = vm.completeSale(type)
-                                        message =
-                                            if (success) "✅ Ödeme başarıyla alındı"
-                                            else "❌ Ödeme başarısız"
+                                        message = if (success) "✅ Ödeme başarıyla alındı" else "❌ Ödeme başarısız"
                                     }
                                 }
                                 .padding(8.dp)
@@ -139,12 +157,12 @@ fun CartScreen(nav: NavHostController, currentUser: User, vm: MainViewModel) {
                                     showPaymentDialog = false
                                     scope.launch {
                                         val success = vm.completeSale(type)
-                                        message =
-                                            if (success) "✅ Ödeme başarıyla alındı"
-                                            else "❌ Ödeme başarısız"
+                                        message = if (success) "✅ Ödeme başarıyla alındı" else "❌ Ödeme başarısız"
                                     }
-                                }
+                                },
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF7B61FF))
                             )
+                            Spacer(Modifier.width(8.dp))
                             Text(type)
                         }
                     }
