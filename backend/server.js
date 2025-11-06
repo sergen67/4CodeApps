@@ -234,7 +234,28 @@ app.get("/users", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+/* ------------------ USER DELETE ------------------ */
+app.delete("/users/:id", async (req, res) => {
+  // Sadece 'admin' rolündeki kullanıcıların silme işlemi yapabilmesi için kontrol
+  if (req.query.role !== 'admin') {
+    return res.status(403).json({ error: "Bu işlemi yapmaya yetkiniz yok." });
+  }
 
+  try {
+    const { id } = req.params;
+    await prisma.user.delete({
+      where: { id: parseInt(id) },
+    });
+    res.json({ message: "Kullanıcı başarıyla silindi." });
+  } catch (err) {
+    console.error("❌ Kullanıcı silme hatası:", err);
+    // Prisma'nın P2025 hatası, kaydın bulunamadığını belirtir.
+    if (err.code === 'P2025') {
+       return res.status(404).json({ error: "Silinecek kullanıcı bulunamadı." });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
 /* ------------------ SERVER ------------------ */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda`));

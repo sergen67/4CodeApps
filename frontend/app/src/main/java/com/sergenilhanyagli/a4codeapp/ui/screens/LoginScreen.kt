@@ -1,5 +1,6 @@
 package com.sergenilhanyagli.a4codeapp.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -7,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,10 +25,27 @@ fun LoginScreen(
     vm: MainViewModel = viewModel(),
     onLoginSuccess: (User) -> Unit = {}
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+
+    // 🔹 Oturum açık mı kontrol et
+    LaunchedEffect(Unit) {
+        if (vm.isLoggedIn(context)) {
+            val role = vm.getSavedRole(context)
+            if (role == "admin") {
+                nav.navigate("admin") {
+                    popUpTo(0)
+                }
+            } else {
+                nav.navigate("products") {
+                    popUpTo(0)
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = Color(0xFFF6F3FF)
@@ -87,8 +106,14 @@ fun LoginScreen(
                                 val success = vm.login(email, password)
                                 if (success && vm.user != null) {
                                     val user = vm.user!!
+
+                                    // 🔹 Oturumu kaydet
+                                    vm.saveLoginState(context, email, user.role)
+
                                     onLoginSuccess(user)
-                                    nav.navigate(if (user.role == "admin") "admin" else "products")
+                                    nav.navigate(if (user.role == "admin") "admin" else "products") {
+                                        popUpTo(0)
+                                    }
                                 } else {
                                     message = "Geçersiz e-posta veya şifre"
                                 }
@@ -104,11 +129,6 @@ fun LoginScreen(
                     if (message.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Text(message, color = Color.Red, fontSize = 14.sp)
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-                    TextButton(onClick = { nav.navigate("register") }) {
-                        Text("Hesabın yok mu? Kayıt ol", color = Color(0xFF7B61FF))
                     }
                 }
             }

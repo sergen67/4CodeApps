@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,61 +43,81 @@ fun EmployeeManagerScreen(nav: NavHostController) {
             )
         }
     ) { pad ->
-        Column(
-            Modifier
-                .padding(pad)
-                .padding(16.dp)
-                .fillMaxSize(),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(pad),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Yeni Çalışan Ekle", fontWeight = FontWeight.Bold, color = Color(0xFF4A3AFF))
+            // --- Yeni Çalışan Ekleme Formu ---
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Yeni Çalışan Ekle", fontWeight = FontWeight.Bold, color = Color(0xFF4A3AFF))
 
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Ad Soyad") })
-            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
-            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Şifre") })
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Ad Soyad") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Şifre") }, modifier = Modifier.fillMaxWidth())
 
-            Button(
-                onClick = {
-                    scope.launch {
-                        if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-                            val body = hashMapOf<String, Any>(
-                                "name" to name,
-                                "email" to email,
-                                "password" to password,
-                                "role" to "user"
-                            )
-                            ApiClient.instance.register(body)
-                            name = ""; email = ""; password = ""
-                            loadEmployees()
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Ekle", color = Color.White) }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                                    val body = hashMapOf<String, Any>(
+                                        "name" to name,
+                                        "email" to email,
+                                        "password" to password,
+                                        "role" to "user"
+                                    )
+                                    ApiClient.instance.register(body)
+                                    name = ""; email = ""; password = ""
+                                    loadEmployees()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Ekle", color = Color.White) }
 
-            Divider(color = Color(0xFFDDD4FF))
+                    Divider(color = Color(0xFFDDD4FF), modifier = Modifier.padding(top = 8.dp, bottom = 8.dp))
 
-            Text("Çalışan Listesi", fontWeight = FontWeight.Bold, color = Color(0xFF4A3AFF))
+                    Text("Çalışan Listesi", fontWeight = FontWeight.Bold, color = Color(0xFF4A3AFF))
+                }
+            }
 
+            // --- Çalışan Listesi ---
             if (employees.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Kayıtlı çalışan yok", color = Color.Gray)
+                item {
+                    Box(Modifier.fillMaxWidth().padding(top = 50.dp), contentAlignment = Alignment.Center) {
+                        Text("Kayıtlı çalışan yok", color = Color.Gray)
+                    }
                 }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(employees) { user ->
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            modifier = Modifier.fillMaxWidth()
+                items(employees) { user ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(Modifier.padding(16.dp)) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(user.name, fontWeight = FontWeight.SemiBold, color = Color(0xFF4A3AFF))
                                 Text(user.email, color = Color.Gray)
                                 Text("Rol: ${user.role}", color = Color(0xFF6B6B6B))
+                            }
+                            IconButton(onClick = {
+                                scope.launch {
+                                    val res = ApiClient.instance.deleteUser(user.id)
+                                    if (res.isSuccessful) {
+                                        loadEmployees() // Listeyi yenile
+                                    }
+                                }
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Çalışanı Sil", tint = Color.Red)
                             }
                         }
                     }

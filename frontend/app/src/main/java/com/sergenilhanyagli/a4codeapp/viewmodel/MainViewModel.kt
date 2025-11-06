@@ -1,5 +1,6 @@
 package com.sergenilhanyagli.a4codeapp.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -113,7 +114,32 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun saveLoginState(context: Context, email: String, role: String) {
+        val prefs = context.getSharedPreferences("4CodePrefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("email", email)
+            .putString("role", role)
+            .putBoolean("loggedIn", true)
+            .apply()
+    }
+    fun clearLoginState(context: Context) {
+        val prefs = context.getSharedPreferences("4CodePrefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+    }
 
+    fun isLoggedIn(context: Context): Boolean {
+        val prefs = context.getSharedPreferences("4CodePrefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("loggedIn", false)
+    }
 
+    fun getSavedRole(context: Context): String? {
+        val prefs = context.getSharedPreferences("4CodePrefs", Context.MODE_PRIVATE)
+        return prefs.getString("role", null)
+    }
+    fun logout(context: Context) {
+        user = null
+        clearCart()
+        clearLoginState(context)
+    }
 
 }

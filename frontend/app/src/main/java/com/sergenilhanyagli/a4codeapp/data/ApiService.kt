@@ -10,7 +10,7 @@ import retrofit2.http.*
 interface ApiService {
 
     @POST("register")
-    suspend fun register(@Body user: User): Response<User>
+    suspend fun register(@Body user: HashMap<String, Any>): Response<User>
 
     @POST("login")
     suspend fun login(@Body creds: LoginRequest): Response<User>
@@ -24,7 +24,6 @@ interface ApiService {
     @GET("orders")
     suspend fun getOrders(): Response<List<Order>>
 
-    // ✅ Ürün ekleme
     @POST("products")
     suspend fun createProduct(@Body product: HashMap<String, Any>): Response<Product>
 
@@ -39,35 +38,37 @@ interface ApiService {
         @Path("id") id: Int?,
         @Query("role") role: String = "admin"
     ): Response<Map<String, String>>
+
     @GET("users")
     suspend fun getUsers(): Response<List<User>>
 
-    @POST("register")
-    suspend fun register(@Body user: HashMap<String, Any>): Response<User>
+    @DELETE("users/{id}")
+    suspend fun deleteUser(
+        @Path("id") id: Int?,
+        @Query("role") role: String = "admin"
+    ): Response<Map<String, String>>
+
     @POST("sales")
     suspend fun createSale(@Body body: HashMap<String, Any>): Response<Map<String, Any>>
 
-
     @GET("sales")
-    suspend fun getSales(): Response<List<Map<String, Any>>>
+    suspend fun getSales(
+        @Query("start") start: String? = null,
+        @Query("end") end: String? = null
+    ): Response<List<Map<String, Any>>>
 
     @GET("sales/daily")
     suspend fun getDailyRevenue(): Response<List<Map<String, Any>>>
 
     @GET("sales/monthly")
     suspend fun getMonthlyRevenue(): Response<List<Map<String, Any>>>
+
     @GET("categories")
     suspend fun getCategories(): Response<List<Map<String, Any>>>
 
     @POST("categories")
     suspend fun createCategory(@Body body: HashMap<String, Any>): Response<Map<String, Any>>
-    @GET("sales/daily")
-    suspend fun getSalesDaily(): Response<List<Map<String, Any>>>
-
-    @GET("sales/monthly")
-    suspend fun getSalesMonthly(): Response<List<Map<String, Any>>>
 
     @GET("/sales/weekly")
     suspend fun getSalesWeekly(): Response<List<Map<String, Any>>>
-
 }

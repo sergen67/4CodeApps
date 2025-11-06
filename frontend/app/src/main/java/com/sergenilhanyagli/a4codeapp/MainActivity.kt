@@ -8,7 +8,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.sergenilhanyagli.a4codeapp.data.models.User
 import com.sergenilhanyagli.a4codeapp.ui.screens.*
 import com.sergenilhanyagli.a4codeapp.ui.theme._4CodeAppTheme
 import com.sergenilhanyagli.a4codeapp.viewmodel.MainViewModel
@@ -28,44 +27,26 @@ class MainActivity : ComponentActivity() {
 fun MainActivityContent() {
     val nav = rememberNavController()
     val vm: MainViewModel = viewModel()
-    var currentUser by remember { mutableStateOf<User?>(null) }
 
     NavHost(navController = nav, startDestination = "login") {
 
-        // 🔹 Giriş ekranı
         composable("login") {
             LoginScreen(nav) { loggedInUser ->
                 vm.user = loggedInUser
-                currentUser = loggedInUser
-                if (loggedInUser.role == "admin") {
-                    nav.navigate("admin")
-                } else {
-                    nav.navigate("products")
+                val destination = if (loggedInUser.role == "admin") "admin" else "products"
+                nav.navigate(destination) {
+                    popUpTo("login") { inclusive = true }
                 }
             }
         }
 
-        composable("register") { RegisterScreen(nav) }
-
-        // 🔹 Ürün listesi (çalışan tarafı)
-        composable("products") {
-            ProductListScreen(nav,vm)
-        }
-
-        // 🔹 Sepet ve ödeme ekranı (parametre: toplam fiyat)
+        composable("products") { ProductListScreen(nav, vm) }
         composable("cart") {
-            // ✅ CartScreen parametreleri: nav, currentUser, vm
-            currentUser?.let { user ->
+            vm.user?.let { user ->
                 CartScreen(nav, user, vm)
-            } ?: run {
-                // Kullanıcı boşsa girişe yönlendir
-                nav.navigate("login")
             }
         }
-
-
         composable("orders") { OrderListScreen(nav) }
-
         composable("admin") { AdminScreen(nav) }
     }
 }

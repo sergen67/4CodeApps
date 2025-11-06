@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -67,7 +69,7 @@ fun ProductManagerScreen(nav: NavHostController) {
 /* 🔹 Ürün Ekleme Sekmesi */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductAddTabModern() {
+fun ProductAddTabModern(modifier: Modifier = Modifier) {
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
@@ -75,116 +77,158 @@ fun ProductAddTabModern() {
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val snackbar = remember { SnackbarHostState() }
+    val snackbarHost = remember { SnackbarHostState() }
 
+    // 🔹 Kategorileri yükle
     LaunchedEffect(Unit) {
         val res = ApiClient.instance.getCategories()
         if (res.isSuccessful) categories = res.body() ?: emptyList()
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { pad ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHost) },
+        containerColor = Color(0xFFF6F3FF)
+    ) { pad ->
         Column(
-            Modifier
+            modifier = modifier
                 .padding(pad)
-                .padding(20.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(16.dp)
+                .fillMaxSize()
         ) {
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                OutlinedTextField(
-                    value = selectedCategoryName ?: "Kategori Seç",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Kategori") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    categories.forEach { cat ->
-                        DropdownMenuItem(
-                            text = { Text(cat["name"].toString()) },
-                            onClick = {
-                                selectedCategoryName = cat["name"].toString()
-                                selectedCategoryId = (cat["id"] as? Double)?.toInt()
-                                expanded = false
-                            }
-                        )
+            // Kaydırılabilir içerik
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 🔹 Kategori seçimi
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategoryName ?: "Kategori Seç",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Kategori") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        categories.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat["name"].toString()) },
+                                onClick = {
+                                    selectedCategoryName = cat["name"].toString()
+                                    selectedCategoryId = (cat["id"] as? Double)?.toInt()
+                                    expanded = false
+                                }
+                            )
+                        }
                     }
                 }
-            }
 
-            // 🔸 Helva için özel varyant formu
-            if (selectedCategoryName == "Helvalar") {
-                Text("Helva Varyasyonları", fontWeight = FontWeight.SemiBold, color = Color(0xFF9C6615))
-                var small by remember { mutableStateOf("") }
-                var large by remember { mutableStateOf("") }
-                var smallIce by remember { mutableStateOf("") }
-                var largeIce by remember { mutableStateOf("") }
+                // 🔹 Helva kategorisi özel form
+                if (selectedCategoryName == "Helvalar") {
+                    Text("Helva Ürün Ekleme", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Helva Adı") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Helva Adı") })
-                OutlinedTextField(value = small, onValueChange = { small = it }, label = { Text("Küçük Boy Fiyat") })
-                OutlinedTextField(value = large, onValueChange = { large = it }, label = { Text("Büyük Boy Fiyat") })
-                OutlinedTextField(value = smallIce, onValueChange = { smallIce = it }, label = { Text("Küçük Dondurmalı Fiyat") })
-                OutlinedTextField(value = largeIce, onValueChange = { largeIce = it }, label = { Text("Büyük Dondurmalı Fiyat") })
+                    var small by remember { mutableStateOf("") }
+                    var large by remember { mutableStateOf("") }
+                    var smallIce by remember { mutableStateOf("") }
+                    var largeIce by remember { mutableStateOf("") }
 
-                Button(
-                    onClick = {
-                        scope.launch {
-                            if (selectedCategoryId == null || name.isEmpty()) {
-                                snackbar.showSnackbar("⚠️ Kategori ve ad boş olamaz")
-                                return@launch
-                            }
-                            val body = hashMapOf<String, Any>(
-                                "name" to name,
-                                "categoryId" to selectedCategoryId!!,
-                                "price" to 0.0,
-                                "variants" to listOf(
-                                    mapOf("name" to "Küçük", "price" to (small.toDoubleOrNull() ?: 0.0)),
-                                    mapOf("name" to "Büyük", "price" to (large.toDoubleOrNull() ?: 0.0)),
-                                    mapOf("name" to "Küçük Dondurmalı", "price" to (smallIce.toDoubleOrNull() ?: 0.0)),
-                                    mapOf("name" to "Büyük Dondurmalı", "price" to (largeIce.toDoubleOrNull() ?: 0.0))
+                    OutlinedTextField(value = small, onValueChange = { small = it }, label = { Text("Küçük Boy Fiyat") })
+                    OutlinedTextField(value = large, onValueChange = { large = it }, label = { Text("Büyük Boy Fiyat") })
+                    OutlinedTextField(value = smallIce, onValueChange = { smallIce = it }, label = { Text("Küçük Dondurmalı Fiyat") })
+                    OutlinedTextField(value = largeIce, onValueChange = { largeIce = it }, label = { Text("Büyük Dondurmalı Fiyat") })
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // 🔹 Kaydet butonu
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                if (selectedCategoryId == null || name.isEmpty()) {
+                                    snackbarHost.showSnackbar("⚠️ Lütfen kategori ve ürün adını doldurun")
+                                    return@launch
+                                }
+
+                                val body = hashMapOf<String, Any>(
+                                    "name" to name,
+                                    "categoryId" to selectedCategoryId!!,
+                                    "price" to 0.0,
+                                    "variants" to listOf(
+                                        hashMapOf("name" to "Küçük", "price" to (small.toDoubleOrNull() ?: 0.0)),
+                                        hashMapOf("name" to "Büyük", "price" to (large.toDoubleOrNull() ?: 0.0)),
+                                        hashMapOf("name" to "Küçük Dondurmalı", "price" to (smallIce.toDoubleOrNull() ?: 0.0)),
+                                        hashMapOf("name" to "Büyük Dondurmalı", "price" to (largeIce.toDoubleOrNull() ?: 0.0))
+                                    )
                                 )
-                            )
-                            val res = ApiClient.instance.createProduct(HashMap(body))
-                            snackbar.showSnackbar(if (res.isSuccessful) "✅ Eklendi" else "❌ Hata: ${res.code()}")
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Kaydet", color = Color.White)
-                }
-            } else {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Ürün Adı") })
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Fiyat") })
-                Button(
-                    onClick = {
-                        scope.launch {
-                            if (selectedCategoryId == null || name.isEmpty()) {
-                                snackbar.showSnackbar("⚠️ Kategori ve ad boş olamaz")
-                                return@launch
+
+                                val res = ApiClient.instance.createProduct(HashMap(body))
+                                if (res.isSuccessful) {
+                                    snackbarHost.showSnackbar("✅ Helva varyasyonlarıyla eklendi")
+                                    name = ""
+                                    small = ""
+                                    large = ""
+                                    smallIce = ""
+                                    largeIce = ""
+                                } else {
+                                    snackbarHost.showSnackbar("❌ Hata: ${res.code()}")
+                                }
                             }
-                            val body = hashMapOf<String, Any>(
-                                "name" to name,
-                                "price" to (price.toDoubleOrNull() ?: 0.0),
-                                "categoryId" to selectedCategoryId!!
-                            )
-                            val res = ApiClient.instance.createProduct(HashMap(body))
-                            snackbar.showSnackbar(if (res.isSuccessful) "✅ Ürün eklendi" else "❌ Hata: ${res.code()}")
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Kaydet", color = Color.White) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF))
+                    ) { Text("Helva Ürününü Kaydet", color = Color.White) }
+                } else {
+                    // 🔹 Normal ürün formu
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Ürün Adı") })
+                    OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Fiyat") })
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                if (selectedCategoryId == null || name.isEmpty()) {
+                                    snackbarHost.showSnackbar("⚠️ Lütfen kategori ve ürün adını doldurun")
+                                    return@launch
+                                }
+
+                                val body = hashMapOf<String, Any>(
+                                    "name" to name,
+                                    "price" to (price.toDoubleOrNull() ?: 0.0),
+                                    "categoryId" to selectedCategoryId!!
+                                )
+
+                                val res = ApiClient.instance.createProduct(HashMap(body))
+                                if (res.isSuccessful) {
+                                    snackbarHost.showSnackbar("✅ Ürün başarıyla eklendi")
+                                    name = ""
+                                    price = ""
+                                    selectedCategoryName = null
+                                } else {
+                                    snackbarHost.showSnackbar("❌ Hata: ${res.code()}")
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF))
+                    ) { Text("Ürünü Kaydet", color = Color.White) }
+                }
             }
         }
     }
 }
+
 
 /* 🔹 Ürün Listesi Sekmesi */
 @Composable
@@ -254,20 +298,24 @@ fun ProductListTabModern(modifier: Modifier = Modifier, vm: MainViewModel = view
                             Text("%.2f ₺".format(product.price), color = Color(0xFF6B6B6B))
 
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Button(
                                     onClick = { showEditDialog = product },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(
-                                            0xFF7B61FF
-                                        )
-                                    ),
-                                    shape = RoundedCornerShape(50),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .height(36.dp)
+                                        .weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
+                                    contentPadding = PaddingValues(vertical = 0.dp)
                                 ) {
-                                    Text("Düzenle", color = Color.White)
+                                    Text(
+                                        "Düzenle",
+                                        fontSize = 13.sp,
+                                        color = Color.White,
+                                        maxLines = 1
+                                    )
                                 }
 
                                 OutlinedButton(
@@ -277,13 +325,22 @@ fun ProductListTabModern(modifier: Modifier = Modifier, vm: MainViewModel = view
                                             loadProducts()
                                         }
                                     },
-                                    shape = RoundedCornerShape(50),
+                                    modifier = Modifier
+                                        .height(36.dp)
+                                        .weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
                                     border = BorderStroke(1.dp, Color(0xFF7B61FF)),
-                                    modifier = Modifier.weight(1f)
+                                    contentPadding = PaddingValues(vertical = 0.dp)
                                 ) {
-                                    Text("Sil", color = Color(0xFF7B61FF))
+                                    Text(
+                                        "Sil",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF7B61FF),
+                                        maxLines = 1
+                                    )
                                 }
                             }
+
                         }
                     }
                 }

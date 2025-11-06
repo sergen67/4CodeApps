@@ -15,6 +15,12 @@ import com.sergenilhanyagli.a4codeapp.data.ApiClient
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import android.app.DatePickerDialog
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.ui.platform.LocalContext
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +30,9 @@ fun RevenueScreen() {
     var weekly by remember { mutableStateOf(0.0) }
     var monthly by remember { mutableStateOf(0.0) }
     var sales by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var startDate by remember { mutableStateOf("") }
+    var endDate by remember { mutableStateOf("") }
+
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -66,6 +75,87 @@ fun RevenueScreen() {
                 RevenueCard("Haftalık", weekly, Modifier.weight(1f))
                 RevenueCard("Aylık", monthly, Modifier.weight(1f))
             }
+            val context = LocalContext.current
+            val calendar = Calendar.getInstance()
+
+            var startDate by remember { mutableStateOf("") }
+            var endDate by remember { mutableStateOf("") }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 🔸 Başlangıç tarihi
+                OutlinedTextField(
+                    value = startDate,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Başlangıç Tarihi") },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    startDate = "%04d-%02d-%02d".format(year, month + 1, day)
+                                },
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH)
+                            ).show()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "Tarih Seç",
+                                tint = Color(0xFF7B61FF)
+                            )
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+
+                // 🔸 Bitiş tarihi
+                OutlinedTextField(
+                    value = endDate,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Bitiş Tarihi") },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    endDate = "%04d-%02d-%02d".format(year, month + 1, day)
+                                },
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH)
+                            ).show()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "Tarih Seç",
+                                tint = Color(0xFF7B61FF)
+                            )
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+
+                Button(onClick = {
+                    if (startDate.isNotEmpty() && endDate.isNotEmpty()) {
+                        scope.launch {
+                            val res = ApiClient.instance.getSalesByDate(startDate, endDate)
+                            if (res.isSuccessful) {
+                                sales = res.body() ?: emptyList()
+                            }
+                        }
+                    }
+                }) {
+                    Text("Filtrele")
+                }
+            }
+
+
 
             Text(
                 "Satış Geçmişi",
