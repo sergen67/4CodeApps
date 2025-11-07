@@ -282,6 +282,28 @@ app.delete("/users/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+/* ------------------ PRODUCT DELETE ------------------ */
+app.delete("/products/:id", async (req, res) => {
+  // Frontend'den gelen 'role' parametresini kontrol et
+  if (req.query.role !== 'admin') {
+    return res.status(403).json({ error: "Bu işlemi yapmaya yetkiniz yok." });
+  }
+
+  try {
+    const { id } = req.params;
+    await prisma.product.delete({
+      where: { id: parseInt(id) },
+    });
+    res.json({ message: "Ürün başarıyla silindi." });
+  } catch (err) {
+    console.error("❌ Ürün silme hatası:", err);
+    // Eğer silinecek ürün bulunamazsa (Prisma P2025 hatası)
+    if (err.code === 'P2025') {
+       return res.status(404).json({ error: "Silinecek ürün bulunamadı." });
+    }
+    res.status(500).json({ error: "Ürün silinirken bir hata oluştu." });
+  }
+});
 /* ------------------ SERVER ------------------ */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda`));
