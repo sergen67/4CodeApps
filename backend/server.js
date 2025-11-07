@@ -110,33 +110,47 @@ app.put("/products/:id", async (req, res) => {
 
 /* ------------------ SALES ------------------ */
 app.post("/sales", async (req, res) => {
-  try {
-    const { userId, totalPrice, paymentType } = req.body;
-    console.log("📩 Gelen satış verisi:", req.body);
+  try {    // Frontend'den artık toplam fiyat yerine ürün listesi gelecek
+    const { userId, paymentType, items } = req.body;
 
-    if (!userId || !totalPrice || !paymentType) {
+    if (!userId || !paymentType || !items || items.length === 0) {
       return res.status(400).json({ error: "Eksik bilgi gönderildi." });
     }
 
+    // Toplam fiyatı backend'de, gelen ürünlerden hesapla
+    const totalPrice = items.reduce((sum, item) => {
+      return sum + (item.price * item.quantity);
+    }, 0);
+
+    // Satışı ve bağlı ürünleri tek bir işlemde veritabanına kaydet
     const sale = await prisma.sale.create({
       data: {
         userId: Number(userId),
-        totalPrice: parseFloat(totalPrice),
-        paymentType,
+        totalPrice: totalPrice,
+        paymentType: paymentType,
+        items: {
+          create: items.map(item => ({
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        }
       },
+      include: {
+        items: true // Yanıta, oluşturulan ürünleri de ekle
+      }
     });
 
     res.json(sale);
   } catch (err) {
-    console.error("Satış oluşturulamadı:", err);
+    console.error("❌ Satış oluşturulamadı:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
-
 app.get("/sales", async (req, res) => {
   try {
-    const { start, end } = req.query;
+    const { start, end, productId } = req.query; // Ürün filtresi için productId eklendi
 
     const where = {};
     if (start && end) {
@@ -146,9 +160,21 @@ app.get("/sales", async (req, res) => {
       };
     }
 
+    // Eğer sorguda productId varsa, sadece o ürünü içeren satışları getir
+    if (productId) {
+        where.items = {
+            some: {
+                productId: parseInt(productId)
+            }
+        }
+    }
+
     const sales = await prisma.sale.findMany({
       where,
-      include: { user: { select: { id: true, name: true } } },
+      include: { 
+          user: { select: { id: true, name: true } },
+          items: true // Her satışın ürünlerini de getir
+      },
       orderBy: { createdAt: "desc" },
     });
 

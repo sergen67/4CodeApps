@@ -52,5 +52,15 @@ model Sale {
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id])
   products    Product[] @relation("SaleProducts")
+  items       SaleItem[]
 }
 
+model SaleItem {
+  id          Int    @id @default(autoincrement())
+  saleId      Int
+  sale        Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId   Int
+  productName String
+  quantity    Int
+  price       Float // Satış anındaki tekil ürün fiyatı
+}
