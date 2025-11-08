@@ -314,6 +314,23 @@ app.delete("/products/:id", async (req, res) => {
     res.status(500).json({ error: "Ürün silinirken bir hata oluştu." });
   }
 });
+/* ------------------ SALES DELETE (RESET REVENUE) ------------------ */
+app.delete("/sales", async (req, res) => {
+  // Güvenlik kontrolü: Sadece admin rolündeki kullanıcılar bu işlemi yapabilir.
+  if (req.query.role !== 'admin') {
+    return res.status(403).json({ error: "Bu işlemi yapmaya yetkiniz yok." });
+  }
+
+  try {
+    // İlişkili verilerin de silinmesi için önce SaleItem'ları, sonra Sale'leri siliyoruz.
+    await prisma.saleItem.deleteMany({});
+    await prisma.sale.deleteMany({});
+    res.json({ message: "Tüm satış verileri başarıyla sıfırlandı." });
+  } catch (err) {
+    console.error("❌ Satış verileri sıfırlama hatası:", err);
+    res.status(500).json({ error: "Satış verileri sıfırlanırken bir hata oluştu." });
+  }
+});
 /* ------------------ SERVER ------------------ */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda`));
