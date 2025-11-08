@@ -189,7 +189,7 @@ app.get("/sales", async (req, res) => {
 /* ------------------ CATEGORIES ------------------ */
 app.get("/categories", async (req, res) => {
   try {
-    const categories = await prisma.category.findMany();
+    const categories = await prisma.category.findMany({include: { _count: { select: { products: true } } }});
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -205,6 +205,16 @@ app.post("/categories", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.delete("/categories/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.category.delete({ where: { id: parseInt(id) } });
+        res.json({ message: "Kategori silindi" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 /* ------------------ REVENUE ------------------ */
